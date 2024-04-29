@@ -5,14 +5,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jordemort/traefik-forward-auth/internal/provider"
 	"github.com/sirupsen/logrus"
-	mux "github.com/traefik/traefik/v2/pkg/muxer/http"
+	"github.com/argyle-engineering/traefik-forward-auth/internal/provider"
+	traefikHTTPMuxer "github.com/traefik/traefik/v2/pkg/muxer/http"
 )
 
 // Server contains router and handler methods
 type Server struct {
-	muxer *mux.Muxer
+	router *traefikHTTPMuxer.Muxer
 }
 
 // NewServer creates a new server object and builds router
@@ -30,7 +30,7 @@ func escapeNewlines(data string) string {
 
 func (s *Server) buildRoutes() {
 	var err error
-	s.muxer, err = mux.NewMuxer()
+	s.router, err = traefikHTTPMuxer.NewMuxer()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,9 +39,9 @@ func (s *Server) buildRoutes() {
 	for name, rule := range config.Rules {
 		matchRule := rule.formattedRule()
 		if rule.Action == "allow" {
-			s.muxer.AddRoute(matchRule, 1, s.AllowHandler(name))
+			_ = s.router.AddRoute(matchRule, 1, s.AllowHandler(name))
 		} else {
-			s.muxer.AddRoute(matchRule, 1, s.AuthHandler(rule.Provider, name))
+			_ = s.router.AddRoute(matchRule, 1, s.AuthHandler(rule.Provider, name))
 		}
 	}
 
