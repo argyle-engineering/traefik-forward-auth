@@ -46,16 +46,16 @@ func (s *Server) buildRoutes() {
 	}
 
 	// Add callback handler
-	s.muxer.Handle(config.Path, s.AuthCallbackHandler())
+	s.router.Handle(config.Path, s.AuthCallbackHandler())
 
 	// Add logout handler
-	s.muxer.Handle(config.Path+"/logout", s.LogoutHandler())
+	s.router.Handle(config.Path+"/logout", s.LogoutHandler())
 
 	// Add a default handler
 	if config.DefaultAction == "allow" {
-		s.muxer.NewRoute().Handler(s.AllowHandler("default"))
+		s.router.NewRoute().Handler(s.AllowHandler("default"))
 	} else {
-		s.muxer.NewRoute().Handler(s.AuthHandler(config.DefaultProvider, "default"))
+		s.router.NewRoute().Handler(s.AuthHandler(config.DefaultProvider, "default"))
 	}
 }
 
@@ -72,7 +72,7 @@ func (s *Server) RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Pass to mux
-	s.muxer.ServeHTTP(w, r)
+	s.router.ServeHTTP(w, r)
 }
 
 // AllowHandler Allows requests
