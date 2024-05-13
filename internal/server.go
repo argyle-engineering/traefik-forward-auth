@@ -5,14 +5,14 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/jordemort/traefik-forward-auth/internal/provider"
 	"github.com/sirupsen/logrus"
-	mux "github.com/traefik/traefik/v2/pkg/muxer/http"
+	"github.com/argyle-engineering/traefik-forward-auth/internal/provider"
+	traefikHTTPMuxer "github.com/traefik/traefik/v2/pkg/muxer/http"
 )
 
 // Server contains router and handler methods
 type Server struct {
-	muxer *mux.Muxer
+	router *traefikHTTPMuxer.Muxer
 }
 
 // NewServer creates a new server object and builds router
@@ -30,7 +30,7 @@ func escapeNewlines(data string) string {
 
 func (s *Server) buildRoutes() {
 	var err error
-	s.muxer, err = mux.NewMuxer()
+	s.router, err = traefikHTTPMuxer.NewMuxer()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -39,23 +39,23 @@ func (s *Server) buildRoutes() {
 	for name, rule := range config.Rules {
 		matchRule := rule.formattedRule()
 		if rule.Action == "allow" {
-			s.muxer.AddRoute(matchRule, 1, s.AllowHandler(name))
+			_ = s.router.AddRoute(matchRule, 1, s.AllowHandler(name))
 		} else {
-			s.muxer.AddRoute(matchRule, 1, s.AuthHandler(rule.Provider, name))
+			_ = s.router.AddRoute(matchRule, 1, s.AuthHandler(rule.Provider, name))
 		}
 	}
 
 	// Add callback handler
-	s.muxer.Handle(config.Path, s.AuthCallbackHandler())
+	s.router.Handle(config.Path, s.AuthCallbackHandler())
 
 	// Add logout handler
-	s.muxer.Handle(config.Path+"/logout", s.LogoutHandler())
+	s.router.Handle(config.Path+"/logout", s.LogoutHandler())
 
 	// Add a default handler
 	if config.DefaultAction == "allow" {
-		s.muxer.NewRoute().Handler(s.AllowHandler("default"))
+		s.router.NewRoute().Handler(s.AllowHandler("default"))
 	} else {
-		s.muxer.NewRoute().Handler(s.AuthHandler(config.DefaultProvider, "default"))
+		s.router.NewRoute().Handler(s.AuthHandler(config.DefaultProvider, "default"))
 	}
 }
 
@@ -72,7 +72,7 @@ func (s *Server) RootHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Pass to mux
-	s.muxer.ServeHTTP(w, r)
+	s.router.ServeHTTP(w, r)
 }
 
 // AllowHandler Allows requests
